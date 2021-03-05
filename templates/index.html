@@ -1,0 +1,445 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    home
+{% endblock %}
+
+{% block ul %}
+    <li class="nav-item">
+        <button type="button" class="nav-link nav-button" data-toggle="modal" data-target="#np{{ user_journal[0].id }}">New Page</button>
+    </li>
+{% endblock %}
+{% block ul2 %}
+        {% if invites != [] %}
+            {% if invites|length  == 1 %}
+                <li class= "nav-item dropdown">
+                    <button type="button" class="nav-link nav-button" data-toggle="modal" data-target="#in{{ invites[0].journal_id }}">
+                        New Invite
+                        <span class="invite">
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-bell-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
+                            </svg>
+                        </span>
+                    </button>
+                </li>
+            {% else %}
+                <li class= "nav-item dropdown">
+                    <button class="nav-link nav-button" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        New Invites
+                        <span class="invite">
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-bell-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
+                            </svg>
+                        </span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="invitesMenuButton">
+                        {% for invite in invites%}
+                            <button type="button" class="dropdown-item" data-toggle="modal" data-target="#in{{ invite.journal_id }}">Invite to <span class="text-uppercase">"{{ invite.journal_name}}"</span></button>
+                        {% endfor %}
+                    </div>
+                </li>
+            {% endif %}
+        {% endif %}
+{% endblock %}
+
+
+
+<!---------------
+    START OF MAIN
+    **************
+------------------->
+
+{% block main %}
+
+    <!-----------
+    Invite pop up
+    ------------->
+    {% if invites != [] %}
+        {% for invite in invites%}
+            <div class="modal fade" id="in{{ invite.journal_id }}" tabindex="-1" role="dialog" aria-labelledby="inviteCenterTitle" aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+
+                            <h6><div class="inline text-uppercase">{{ invite.sender}}</div> has invited you to "<div class="inline text-uppercase">{{ invite.journal_name }}</div>".
+                            <br>Would you like to accept?</h6>
+                        </div>
+                        <div class="modal-footer">
+                            <form action="/accept_invite" method="post">
+                                <input  class="display_none" name="journal_id" value="{{ invite.journal_id }}" type="text">
+                                <button type="submit" class="btn btn-outline-dark">Yes</button>
+                            </form>
+                            <form action="/decline_invite" method="post" >
+                                <input  class="display_none" name="journal_id" value="{{ invite.journal_id }}" type="text">
+                                <button type="submit" class="btn btn-outline-dark">NO</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!------
+    New Page
+    -------->
+    {% for journal in journals %}
+        <div class="modal fade" id="np{{ journal.id }}" tabindex="-1" role="dialog" aria-labelledby="np{{ journal.id }}-CenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-uppercase" id="np{{ journal.id }}-LongTitle">CREATE PAGE IN "{{ journal.name }}"</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form action="/new_page" method="post">
+                        <div class="modal-body">
+                            <div class="input-group mb-3">
+                                <input autocomplete="off" class="form-control" name="page_name" placeholder="Page Title" type="text">
+                                <div class="input-group-append">
+                                    <input class="display_none" name="journal_id" value="{{ journal.id }}" type="text">
+                                    <button type="submit" class="btn btn-outline-dark">Create</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+<!------------------
+    CORE OF MAIN
+    ************
+-------------------->
+    <div class="large-screen">
+        <div class="center index-container">
+            <div class="journal-tabs-container">
+                {% if new_user %}
+                        <button class="btn btn-outline-dark btn-lg btn-block" type="button" data-toggle="modal" data-target="#np{{ user_journal[0].id }}">
+                            <span>Get Started</span>
+                        </button>
+                {% else %}
+
+                    <!-- warnings -->
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="display:{{ display_warning }};display_warningdisplay_warningdisplay_warning">
+                        <strong>{{ warning }}.</strong>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <!---------
+                    delete page
+                    ----------->
+                    {% for page in pages %}
+                        <div class="modal fade" id="ap{{ page.id }}" tabindex="-1" role="dialog" aria-labelledby="ap{{ page.id }}CenterTitle" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="ap{{ page.id }}LongTitle">Delete Page</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        You are about to delete "{{ page.title }}."
+                                        <br> <strong>This change cannot be undone.</strong>
+                                        <br> Still delete?
+                                    </div>
+                                    <form action="/delete_page" method="post" class="modal-footer">
+                                        <input  class="display_none" name="page_id" value="{{ page.id }}" type="text">
+                                        <button type="button" class="btn btn-outline-dark" data-dismiss="modal">No</button>
+                                        <button type="submit" class="btn btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    {% for journal in journals %}
+
+                        <!-- Delete Journal Alert -->
+                        <div class="modal fade" id="dj{{ journal.id }}" tabindex="-1" role="dialog" aria-labelledby="dj{{ journal.id }}-CenterTitle" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="dj{{ journal.id }}-LongTitle">Delete Team</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        You are about to delete "{{ journal.name }}."
+                                        <br> <strong>This will delete all contet in "{{ journal.name }}."
+                                        <br> This change cannot be undone.</strong>
+                                        <br> Still delete?
+                                    </div>
+                                    <form action="/delete_journal" method="post" class="modal-footer">
+                                        <input  class="display_none" name="journal_id" value="{{ journal.id }}" type="text">
+                                        <button type="button" class="btn btn-outline-dark" data-dismiss="modal">No</button>
+                                        <button type="submit" class="btn btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add usser to journal -->
+                        <div class="modal fade" id="nu{{ journal.id }}" tabindex="-1" role="dialog" aria-labelledby="np{{ journal.id }}-CenterTitle" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title text-uppercase" id="np{{ journal.id }}-LongTitle">Share "{{ journal.name }}"</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <form action="/send_invite" method="post">
+                                        <div class="modal-body">
+                                            <h6>Share Journal With?</h6>
+                                            <div class="input-group mb-3">
+                                                <input autocomplete="off" class="form-control" name="username" placeholder="Username" type="text">
+                                                <div class="input-group-append">
+                                                    <input class="display_none" name="journal_id" value="{{ journal.id }}" type="text">
+                                                    <input class="display_none" name="sender" value="{{ username[0].username }}" type="text">
+                                                    <button type="submit" class="btn btn-outline-dark">Share</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <!-- Search Bar -->
+                    <nav class="navbar navbar-light bg-light btn btn-outline-dark text-center search-container">
+                        <form action="/search" method="post" class="form-inline">
+                            <input class="form-control mr-sm-2" name="search-term" type="search" placeholder="Search" aria-label="Search">
+                            <button class="btn btn-outline-dark my-2 my-sm-0" type="submit">Search</button>
+                        </form>
+                        <h5 class="search-title text-uppercase name">{{ username[0].username }}</h5>
+                    </nav>
+                    <div class="card">
+                    {% if search %}
+                        {% for page in results %}
+                            <div class="card-body card-devider">
+                                <form action="/load_page" method="post">
+                                    <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                    <button class="page-list-button" type="submit">
+                                        <span>
+                                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                            </svg>
+                                        </span>
+                                        <span>{{ page.title }}</span>
+                                    </button>
+                                    <button class="btn page-trash-button" type="button" data-toggle="modal" data-target="#ap{{ page.id }}">
+                                        <span class="far fa-trash-alt"></span>
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+                    <!----------
+                    ALL PAGES TAB
+                    ----------->
+                    <div id="all_page_container">
+
+                        <!-- All Pages Tab -->
+                        <div class="card top-card">
+                            <div class="card-header journal-tab-header" id="all-pages">
+                                <h5 class="mb-0">
+                                    <div class="btn-group full-div" role="group" aria-label="journal tab">
+                                        <button class="btn btn-outline-dark journal-tab-button" data-toggle="collapse" data-target="#collaps-all-pages" aria-expanded="true" aria-controls="collaps-all-pages">
+                                            ALL PAGES
+                                        </button>
+
+                                        <!-- New Button -->
+                                        <button id="new" class="btn btn-outline-dark right-button" type="button" data-toggle="modal" data-target="#np{{ user_journal[0].id }}">
+                                            <span>
+                                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-earmark-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M9 1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5v-1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5v2.5A1.5 1.5 0 0 0 10.5 6H13v2h1V6L9 1z"/>
+                                                    <path fill-rule="evenodd" d="M13.5 10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/>
+                                                    <path fill-rule="evenodd" d="M13 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0v-2z"/>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </h5>
+                            </div>
+
+                            <!-- All Page Content -->
+                            <div id="collaps-all-pages" class="collapse page-list-container" aria-labelledby="all-pages">
+                                {% for page in pages %}
+                                    <div class="card-body card-devider">
+                                        <form action="/load_page" method="post">
+                                            <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                            <button class="page-list-button" type="submit">
+                                                <span>
+                                                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                        <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                                    </svg>
+                                                </span>
+                                                <span>{{ page.title }}</span>
+                                            </button>
+                                            <button class="btn page-trash-button" type="button" data-toggle="modal" data-target="#ap{{ page.id }}">
+                                                <span class="far fa-trash-alt"></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!----------
+                    Journals
+                    ----------->
+                    {% for journal in journals %}
+                        {% if journal.id != user_journal[0].id %}
+                            <div id="journal_container">
+
+                                <!-- journal TAB Collaps Button  -->
+                                <div class="card">
+                                    <div class="card-header journal-tab-header" id="journals">
+                                        <h5 class="mb-0">
+                                            <div class="btn-group full-div" role="group" aria-label="journal tab">
+                                                <button class="btn btn-outline-dark journal-tab-button text-left text-uppercase" data-toggle="collapse" data-target="#collaps-j{{ journal.id }}" aria-expanded="true" aria-controls="collaps-journals">
+                                                    <spann>
+                                                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-journals" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M3 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2z"/>
+                                                            <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2v-1a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2zM1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z"/>
+                                                        </svg>
+                                                    </spann>
+                                                    {{ journal.name }}
+                                                </button>
+
+                                                <!-- Add page -->
+                                                <button id="new" class="btn btn-outline-dark middle-button" type="button" data-toggle="modal" data-target="#np{{ journal.id }}">
+                                                    <span>
+                                                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-earmark-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M9 1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5v-1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5v2.5A1.5 1.5 0 0 0 10.5 6H13v2h1V6L9 1z"/>
+                                                            <path fill-rule="evenodd" d="M13.5 10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/>
+                                                            <path fill-rule="evenodd" d="M13 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0v-2z"/>
+                                                        </svg>
+                                                    </span>
+                                                </button>
+
+                                                <!-- add user -->
+                                                <button id="add-user" class="btn btn-outline-dark middle-button" type="button" data-toggle="modal" data-target="#nu{{ journal.id }}">
+                                                    <span>
+                                                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-person-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fill-rule="evenodd" d="M11 14s1 0 1-1-1-4-6-4-6 3-6 4 1 1 1 1h10zm-9.995-.944v-.002.002zM1.022 13h9.956a.274.274 0 0 0 .014-.002l.008-.002c-.001-.246-.154-.986-.832-1.664C9.516 10.68 8.289 10 6 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664a1.05 1.05 0 0 0 .022.004zm9.974.056v-.002.002zM6 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm4.5 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z"/>
+                                                            <path fill-rule="evenodd" d="M13 7.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0v-2z"/>
+                                                        </svg>
+                                                    </span>
+                                                </button>
+
+                                                <!-- Trash Button -->
+                                                <button id="trash" class="btn btn-outline-dark right-button" type="button" data-toggle="modal" data-target="#dj{{ journal.id }}">
+                                                    <span class="far fa-trash-alt"></span>
+                                                </button>
+                                            </div>
+                                        </h5>
+                                    </div>
+
+                                    <!-- Pages -->
+                                    <div id="collaps-j{{ journal.id }}" class="collapse page-list-container" aria-labelledby="journals">
+                                        {% for page in pages %}
+                                            {% if page.journal_id ==journal.id %}
+                                                <div class="card-body card-devider">
+                                                    <form action="/load_page" method="post">
+                                                        <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                                        <button class="page-list-button" type="submit">
+                                                            <span >
+                                                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                                    <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                                                </svg>
+                                                            </span>
+                                                            <span>{{ page.title }}</span>
+                                                        </button>
+                                                        <button class="btn page-trash-button" type="button" data-toggle="modal" data-target="#ap{{ page.id }}">
+                                                            <span class="far fa-trash-alt"></span>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!----------
+                    USER TAB
+                    ----------->
+                    <div id="user_container">
+
+                        <!-- User TAB Collaps Button  -->
+                        <div class="card">
+                            <div class="card-header journal-tab-header" id="users">
+                                <h5 class="mb-0">
+                                    <div class="btn-group full-div" role="group" aria-label="journal tab">
+                                        <button class="btn btn-outline-dark text-uppercase journal-tab-button" data-toggle="collapse" data-target="#collaps-users" aria-expanded="true" aria-controls="collaps-users">
+                                            {{ username[0].username }}
+                                        </button>
+
+                                        <!-- New Button -->
+                                        <button id="new" class="btn btn-outline-dark middle-button" type="button" data-toggle="modal" data-target="#np{{ user_journal[0].id }}">
+                                            <span>
+                                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-earmark-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M9 1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5v-1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5v2.5A1.5 1.5 0 0 0 10.5 6H13v2h1V6L9 1z"/>
+                                                    <path fill-rule="evenodd" d="M13.5 10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/>
+                                                    <path fill-rule="evenodd" d="M13 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0v-2z"/>
+                                                </svg>
+                                            </span>
+                                        </button>
+
+                                        <!-- add user -->
+                                        <button id="add-user" class="btn btn-outline-dark right-button" type="button" data-toggle="modal" data-target="#nu{{ user_journal[0].id }}">
+                                            <span>
+                                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-person-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                    <path fill-rule="evenodd" d="M11 14s1 0 1-1-1-4-6-4-6 3-6 4 1 1 1 1h10zm-9.995-.944v-.002.002zM1.022 13h9.956a.274.274 0 0 0 .014-.002l.008-.002c-.001-.246-.154-.986-.832-1.664C9.516 10.68 8.289 10 6 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664a1.05 1.05 0 0 0 .022.004zm9.974.056v-.002.002zM6 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm4.5 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z"/>
+                                                    <path fill-rule="evenodd" d="M13 7.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0v-2z"/>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </h5>
+                            </div>
+
+                            <!-- User journal Content -->
+                            <div id="collaps-users" class="collapse show page-list-container" aria-labelledby="users">
+                                {% for page in pages %}
+                                    {% if page.journal_id == user_journal[0].id %}
+                                        <div class="card-body card-devider">
+                                            <form action="/load_page" method="post">
+                                                <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                                <button class="page-list-button" type="submit">
+                                                    <span>
+                                                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                            <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span>{{ page.title }}</span>
+                                                </button>
+                                                <button class="btn page-trash-button" type="button" data-toggle="modal" data-target="#ap{{ page.id }}">
+                                                    <span class="far fa-trash-alt"></span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

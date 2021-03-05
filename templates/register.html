@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <div class="container p-5">
+        <form action="/register" method="post">
+            <div class="form-group">
+                <input autocomplete="off" autofocus id="username" class="form-control" name="username" placeholder="Username" type="text" value="{{ username }}">
+                <small id="username_instructions" class="form-text text-danger" style="display: {{ username_instructions_display }};">{{ username_instructions }}</small>
+            </div>
+            <div class="form-group">
+                <input id="password" class="form-control" name="password" placeholder="Password" type="password" {{ password_form }}>
+            </div>
+            <div class="form-group">
+                <input id="confirm" class="form-control" name="confirmation" placeholder="Confirm Password" type="password" disabled>
+                <small id="password_instructions" class="form-text text-danger" style="display: {{ password_instructions_display }};">{{ password_instructions }}</small>
+                <small id="confirm_instructions" class="display_none form-text text-danger">Your passwords do not match.</small>
+            </div>
+            <button id="register_submit" class="btn btn-outline-dark" type="submit" disabled>Register</button>
+        </form>
+    </div>
+{% endblock %}

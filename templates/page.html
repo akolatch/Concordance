@@ -1,0 +1,379 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{ display_page[0].title }}
+{% endblock %}
+
+{% block main %}
+
+
+
+    <!-- warnings -->
+    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="display:{{ display_warning }};display_warningdisplay_warningdisplay_warning">
+        <strong>{{ warning }}.</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+<!------------
+    PopUps
+------------->
+    <!-- new page popup-->
+    <div class="modal fade" id="np{{ page_journal[0].id }}" tabindex="-1" role="dialog" aria-labelledby="np{{ page_journal[0].id }}-CenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-uppercase" id="np{{ page_journal[0].id }}-LongTitle">CREATE PAGE IN "{{ page_journal[0].name }}"</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="/new_page" method="post">
+                    <div class="modal-body">
+                        <div class="input-group mb-3">
+                            <input autocomplete="off" class="form-control" name="page_name" placeholder="Page Title" type="text">
+                            <div class="input-group-append">
+                                <input class="display_none" name="journal_id" value="{{ page_journal[0].id }}" type="text">
+                                <button type="submit" class="btn btn-outline-dark">Create</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Alert -->
+    <div class="modal fade" id="delete-alert" tabindex="-1" role="dialog" aria-labelledby="deleteAlertCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteAlertLongTitle">Delete Page</h5>
+                </div>
+                <div class="modal-body warning">
+                    You are about to delete "{{ display_page[0].title }}."
+                    <br> <strong>This change cannot be undone.</strong>
+                    <br> Still delete?
+                </div>
+                <form action="/delete_page" method="post" class="modal-footer">
+                    <input  class="display_none" name="page_id" value="{{ display_page[0].id }}" type="text">
+                    <button type="button" class="btn btn-outline-dark" data-dismiss="modal">No</button>
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- open page popup -->
+    <div class="modal fade" id="open" tabindex="-1" role="dialog" aria-labelledby="openTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="openTitle">Open</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% for journal in journals %}
+                        <div id="journal_container">
+
+                            <!-- journal TAB Collaps Button  -->
+                            <div class="card">
+                                <div class="card-header open-tabs" id="journals">
+                                    <h5 class="mb-0">
+                                        <div class="btn-group full-div" role="group" aria-label="journal tab">
+                                            <button class="text-uppercase open-journal-button full-div" data-toggle="collapse" data-target="#collaps-j{{ journal.id }}" aria-expanded="true" aria-controls="collaps-journals">
+                                                <spann>
+                                                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-journals" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M3 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2z"/>
+                                                        <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2v-1a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2zM1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z"/>
+                                                    </svg>
+                                                </spann>
+                                                {{ journal.name }}
+                                            </button>
+                                        </div>
+                                    </h5>
+                                </div>
+
+                                <!-- Pages -->
+                                <div id="collaps-j{{ journal.id }}" class="collapse page-list-container" aria-labelledby="journals">
+                                    {% for page in pages %}
+                                        {% if page.journal_id == journal.id %}
+                                            <div class="card-body">
+                                                <form action="/load_page" method="post">
+                                                    <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                                    <button class="page-open-button" type="submit">
+                                                        <span >
+                                                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                                <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                                            </svg>
+                                                        </span>
+                                                        <span>{{ page.title }}</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concordance popup -->
+    <div class="modal fade" id="concordance" tabindex="-1" role="dialog" aria-labelledby="concordanceTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="concordanceTitle">Concordance</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% for journal in journals %}
+                        {% if journal.id in concordance_journals %}
+                            <div class="dropdown-divider"></div>
+                            <div id="journal_container">
+
+                                <!-- journal TAB Collaps Button  -->
+                                <div class="card">
+                                    <div class="card-header open-tabs" id="journals">
+                                        <h5 class="mb-0">
+                                            <div class="btn-group full-div" role="group" aria-label="journal tab">
+                                                <button class="text-uppercase open-journal-button full-div" data-toggle="collapse" data-target="#c{{ journal.id }}" aria-expanded="true" aria-controls="collaps-journals">
+                                                    <spann>
+                                                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-journals" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M3 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2z"/>
+                                                            <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2v-1a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2zM1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z"/>
+                                                        </svg>
+                                                    </spann>
+                                                    {{ journal.name }}
+                                                </button>
+                                            </div>
+                                        </h5>
+                                    </div>
+
+                                    <!-- Pages -->
+                                    <div id="c{{ journal.id }}" class="collapse page-list-container {% if concordance|length < 10 %} show {% endif %}" aria-labelledby="journals">
+                                        {% for title in concordance %}
+                                            {% if title.journal_id == journal.id %}
+                                                <div class="card-body">
+                                                    <form action="/concordance" method="post">
+                                                        <input id="concordance_id" class="display_none" name="concordance_id" type="text" value="{{ title.id }}">
+                                                        <input id="page-id" class="display_none" name="page_id" type="text" value="{{ display_page[0].id }}">
+                                                        <button class="dropdown-item" type="submit">
+                                                            <span>
+                                                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+                                                                    <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                                                                </svg>
+                                                            </span>
+                                                            {{ title.title }}
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!--------------------
+    Format tool bar
+--------------------->
+    <div>
+        <nav class="navbar-dark" style="background: #282828;">
+            <ul class="nav mr-auto tool-bar">
+
+                <!-- new page -->
+                <li class="nav-item">
+                    <button type="button" class="nav-hover nav-button" data-toggle="modal" data-target="#np{{ page_journal[0].id }}">New</button>
+                </li>
+
+                <!--OPEN Page-->
+                <li class="nav-item">
+                    <button class="nav-button nav-hover" type="button" id="openButton" data-toggle="modal" data-target="#open">
+                        Open
+                    </button>
+                </li>
+
+                <!-- save page -->
+                <li class="nav-item">
+                    <form action="/save_page" method="post">
+                        <input id="title" class="display_none" name="title" type="text">
+                        <input id="page-text" class="display_none" name="page_text" type="text">
+                        <input class="display_none" name="page_id" value="{{ display_page[0].id }}" type="text">
+                        <button id="save" class="nav-button nav-hover" type="submit">
+                            Save
+                        </button>
+                    </form>
+                </li>
+
+                <!-- font size-->
+                <li class="nav-item dropdown">
+                    <a class="text-light nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false"><span class="fas fa-text-height"></span></a>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item font-sm" href="javascript:void(0)" onclick="format('fontsize', 1)">SMALL</a>
+                        <a class="dropdown-item font-md" href="javascript:void(0)" onclick="format('fontsize', 3)">Medium</a>
+                        <a class="dropdown-item font-lg" href="javascript:void(0)" onclick="format('fontsize', 6)">LARGE</a>
+                    </div>
+                </li>
+                <!-- formatting -->
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="format('bold')"><span class="fas fa-bold"></span></a></li>
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="format('italic')"><span class="fas fa-italic"></span></a></li>
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="format('underline')"><span class="fas fa-underline"></span></a></li>
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="format('insertorderedlist')"><span class="fas fa-list-ol"></span></a></li>
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="format('insertunorderedlist')"><span class="fas fa-list-ul"></span></a></li>
+                <li class="nav-item"><a class="text-light nav-link" href="javascript:void(0)" onclick="setUrl()"><span class="fas fa-link"></span></a></li>
+
+                <!-- delete page -->
+                <li class="nav-item">
+                    <button class="nav-button nav-hover" type="button" data-toggle="modal" data-target="#delete-alert">
+                        <span class="far fa-trash-alt"></span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- URL bar -->
+    <div>
+        <input autocomplete="off" id="url" placeholder="url" class="form-control url-form" style="display: none;">
+    </div>
+
+
+
+<!-----------------------
+    Concordance & Move
+------------------------->
+
+    <!-- concordance -->
+    {% if concordance != [] %}
+        <div class="concordance-container dropdown ">
+            <button class="btn btn-secondary btn-sm btn-block" type="button" id="concordanceButton" data-toggle="modal" data-target="#concordance">
+                <strong>Concordance</strong>
+            </button>
+        </div>
+    {% endif %}
+
+    <!-- Move To -->
+    <div class="move-container text-drk-gray" role="group">
+        <div class="btn-group" role="group">
+            <div class="text-weight-light btn-sm"><div class="inline text-uppercase">{{ page_journal[0].name }}</div> / {{ display_page[0].title }}</div>
+            <button class="btn dropdown-toggle move-button btn-sm text-drk-gray" type="button" id="movePageButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <strong>Move Page To...</strong>
+            </button>
+            <div class="dropdown-menu" aria-labelledby="movePageButton">
+                {% for journal in journals %}
+                    <form action="/move_page" method="post">
+                        <input class="display_none" name="page_id" type="text" value="{{ display_page[0].id }}">
+                        <input class="display_none" name="old_journal_id" type="text" value="{{ page_journal[0].id }}">
+                        <input class="display_none" name="new_journal_id" type="text" value="{{ journal.id }}">
+                        <button class="text-drk-gray text-uppercase dropdown-item" type="submit">
+                            <spann>
+                                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-journals" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2z"/>
+                                    <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2v-1a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2zM1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z"/>
+                                </svg>
+                            </spann>
+                            {{ journal.name }}
+                        </button>
+                        <div class="dropdown-divider"></div>
+                    </form>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+<!-----------------
+   Text Editor
+------------------>
+
+    <!-- Text Editor -->
+    <div class="large-screen text-editer-container">
+        <div class="center">
+            <div class="page-editor-container">
+                {% if concordance_page != None %}
+                    <h2 id="page-title" class="page-title" contentEditable="true">{{ display_page[0].title }}</h2>
+                    <div id=page-content class="page-body" contentEditable="true">{{ page_content }}</div>
+                    {% for page in concordance_page %}
+                        <div>
+                            <div class="concordance-title-container">
+                            <form action="/load_page" method="post">
+                                <input id="page-id" class="display_none" name="page_id" type="text" value="{{ page.id }}">
+                                <button class="concordance-title-button" type="submit">
+                                    <span>
+                                        <h5 >{{ page.title }}</h5>
+                                    </span>
+                                </button>
+                            </form>
+                            </div>
+                            <div id=concordance_pages class="page-body">{{  concordance_content }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <h2 id="page-title" class="page-title" contentEditable="true">{{ display_page[0].title }}</h2>
+                    <div id=page-content class="page-body page-body-height" contentEditable="true">{{ page_content }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // Pass valuse from the text editor to a form so they can be Posted
+        document.querySelector("#save").onclick = function() {
+            document.querySelector("#title").value = document.querySelector("#page-title").innerText;
+            document.querySelector("#page-text").value = document.querySelector("#page-content").innerHTML;
+        };
+
+
+        // tab indent, shift + tab outdent
+        $('#page-content').on('keydown .editable', function(e){
+            if(e.keyCode == 9 && e.shiftKey) {
+                document.execCommand ( 'styleWithCSS', true, null );
+                document.execCommand ( 'outdent', true, null );
+                e.preventDefault();
+            }
+            else if(e.keyCode == 9) {
+                console.log("key", e.keyCode);
+                document.execCommand ( 'styleWithCSS', true, null );
+                document.execCommand ( 'indent', true, null );
+                e.preventDefault();
+            }
+        });
+
+
+        // ctrl + s save funsction
+        $(window).bind('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch (String.fromCharCode(event.which).toLowerCase()) {
+                case 's':
+
+                    // Override defaul
+                    event.preventDefault();
+
+                    // Simulate button click
+                    $('#save').focus().click();
+                    return false;
+                }
+            }
+        });
+
+
+    </script>
+{% endblock %}

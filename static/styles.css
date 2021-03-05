@@ -1,0 +1,523 @@
+/* CSS syle sheet for Concordance web app
+
+Info:
+
+Most of the style is using bootstraps 4 in combination with JavaScript
+    More info at: https://getbootstrap.com/
+
+Icons are from Font Awsome
+    More info at: https://fontawesome.com/
+
+A small number of styl setting are written inline so that jinja could be used to set style, or because js styling functions were not working when styling was set here.
+
+List of a all inline style:
+    page.html, line 31, style="display: none;"
+    register.html, line 12, style="display: {{ username_instructions_display }};"
+    redister.html, line 19, style="display: {{ password_instructions_display }};"
+
+Table of content:
+
+- Universal classes
+- Layout.html
+    *Nav Bar
+    *Main
+- Index.html
+- page.html
+    *Mobile
+    *Computer Screen
+*/
+
+/*******
+UNIVERSAL
+********/
+
+/* Set permanetly invisble elements */
+.display_none
+{
+    display: none;
+}
+
+/* set element to inline */
+.inline {
+    display: inline;
+}
+
+/* Set elemnt display to inherit*/
+.display_inherit
+{
+    display: inherit;
+}
+
+/* overide button standards*/
+.nav-button {
+    border: none;
+    background-color: inherit;
+}
+
+/* remove a border */
+.no-border {
+    border: none;
+}
+
+.text-drk-gray {
+    color: #3c3c3d;
+}
+
+/* set element to take up its max space*/
+.full-div {
+    height: 100%;
+    width: 100%;
+}
+
+
+/*****************
+****************************************************
+        LAYOUT                                  ||||
+****************************************************
+******************/
+
+/***********/
+/*** NAV ***/
+
+/* colors for Logo */
+nav .logo {
+    font-size: xx-large;
+    color: #c29753;
+    text-decoration: none;
+}
+
+nav .logo:hover {
+    color: #e0b87a;
+}
+
+/****************/
+/***** MAIN *****/
+main .form-control {
+    /* center form controls */
+    display: inline-block;
+
+    /* override Bootstrap's 100% width for form controls */
+    width: auto;
+}
+
+main {
+    /* center contents */
+    text-align: center;
+}
+
+
+/**************
+******************************************************
+        INDEX                                     ||||
+******************************************************
+**************/
+
+/**********/
+/** Misc **/
+
+/*** invite bell color ***/
+.name {
+    display: none;
+}
+
+.invite {
+    color: #c29753;
+}
+.invite:hover {
+    color: #e0b87a;
+}
+
+/** modals **/
+.modal-header {
+    align-self: center;
+}
+
+/** scroll to main body**/
+.index-container {
+    overflow: auto;
+}
+
+.search-container {
+    cursor: default;
+}
+
+.search-title {
+    color: #282828;
+    position: absolute;
+    top: 50%;
+    right: 20%;
+    transform: translate(-50%, -50%);
+    cursor: default;
+}
+
+.search-title:hover {
+    color: #282828;
+}
+
+
+/*******************************************/
+/*** styling the journal collaps buttons ***/
+
+/* override boot straps card boarder*/
+.card {
+    border: none;
+    margin-bottom: 5px;
+}
+
+.top-card {
+    margin-top: 1em;
+}
+.journal-tab-header {
+    /* overide bootstraps card-header padding*/
+    padding: 0;
+    border: none;
+
+    /*add shadow*/
+    box-shadow: 5px 5px 15px #aaaaaa;
+}
+
+/* make folder botton full size*/
+.journal-tab-button {
+    height: 100%;
+    width: 100%;
+    padding: 6px 20px;
+    border-right: 0;
+}
+
+/* button group hover affects*/
+.journal-tab-button:hover ~ #new {
+    background-color: #4a535c;
+    color: #9da1a3;
+}
+.journal-tab-button:hover ~ #add-user {
+    background-color: #4a535c;
+    color: #9da1a3;
+}
+.journal-tab-button:hover ~ #trash {
+    background-color: #4a535c;
+    color: #9da1a3;
+}
+
+/* override bootsrap internal boarders for the group*/
+.right-button {
+    border-left: none;
+}
+.middle-button {
+    border-left: none;
+    border-right: none;
+}
+
+
+/******************/
+/** page lists **/
+
+/*size decrease and indent */
+.page-list-container {
+    width: 98%;
+    align-self: flex-start;
+}
+
+.card-devider {
+
+    /* add bottom border*/
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-body {
+    /*bootstraps overide*/
+    padding: 0;
+}
+
+.card-body:hover {
+    border-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, 0.125);
+}
+
+/* overide default styling */
+.page-list-button {
+
+    border: none;
+    background-color: inherit;
+    color: #6a6a6b;
+    padding: 13px 0;
+    width: 80%;
+    height: 100%;
+    text-align: left;
+}
+
+/* text color change */
+.page-list-button:hover {
+    color: #343a40;
+}
+
+.page-trash-button {
+    border: none;
+    color: #818182;
+    background-color: inherit;
+}
+
+.page-trash-button:hover {
+    color: #343a40;
+    border: none;
+    background-color: inherit;
+}
+
+
+
+/********************
+*******************************************************
+        Page                                        ||||
+********************************************************
+*********************/
+
+/* alert */
+.alert {
+    margin: 0;
+}
+
+
+/*******************/
+/*** open Pop Up ***/
+.open-journal-button {
+    color: #6a6a6b;
+    background-color: white;
+    border-top: solid #6a6a6b 1px;
+    border-bottom: solid #6a6a6b 1px;
+    border-left: 0;
+    border-right: 0;
+    padding: 5px 0;
+}
+
+.open-tabs {
+    padding: 0;
+    border: none;
+}
+
+.page-open-button {
+
+    border: none;
+    background-color: inherit;
+    color: #6a6a6b;
+    padding: 5px 0;
+    width: 80%;
+    height: 100%;
+    text-align: left;
+}
+
+/* text color change */
+.page-open-button:hover {
+    color: #343a40;
+}
+
+/***************************/
+/*** formatting tool bar ***/
+.tool-bar {
+    /*override bootstraps*/
+    margin-top: 0;
+}
+
+/* fix button hover */
+.nav-hover {
+    color: #f8f9fa;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+.nav-hover:hover {
+    color: #dae0e5;
+}
+
+/* font size dropdown */
+.font-sm {
+    font-size: 10px;
+}
+.font-md {
+    font-size: 16px;
+}
+.font-lg {
+    font-size: 32px;
+}
+
+/* URL Bar */
+.url-form {
+    display: none;
+    padding: 10px;
+}
+
+
+/****************/
+/*** move bar ***/
+.move-container {
+    width: 100%;
+    background-color: white;
+    border-bottom: 2px solid #151515;
+}
+.move-container:hover {
+    background-color: #e5e5e5;
+    border-bottom: 2px solid #3c3c3d;
+    color: #282828;
+}
+
+.move-container:hover .move-button {
+    background-color: #e5e5e5;
+    color: #282828;
+}
+
+.move-button {
+    background-color: white;
+
+}
+.move-button:hover {
+    background-color: #e5e5e5;
+    color: #282828;
+}
+
+
+/***********************/
+/*** concordance bar ***/
+.concordance-container {
+    background-color: #bfbfbf;
+}
+
+/* overide bootstraps */
+.btn-secondary {
+    border-radius: 0;
+    border: 0;
+    background-color: #bfbfbf;
+    color: #282828;
+}
+.btn-secondary:hover{
+    border-radius: 0;
+    border: 0;
+    background-color: #a6a6a7;
+    color: #151515;
+
+}
+
+
+/**********************/
+/**** text editor ****/
+.page-editor-container {
+	border-top:solid 1px #ccc;
+	overflow: auto;
+	height: 70vh;
+}
+.page-title {
+	padding: 60px 20px 20px 20px;
+}
+.page-body {
+	display: block;
+	padding: 20px 30px;
+	text-align: left;
+
+}
+
+/* remove focus from text editor*/
+.page-body:focus {
+    outline:none;
+}
+
+/* set min-height when no concordance text is displayed*/
+.page-body-height {
+    min-height: 61vh;
+}
+
+/* concordance text display*/
+.concordance-title-container {
+    position: relative;
+    width: 100%;
+    padding-top: 35px;
+}
+
+.concordance-title-container::before {
+	content: '';
+	height: 1px;
+	width: 60%;
+	background-color: #ccc;
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, 0);
+}
+.concordance-title-button {
+    background-color: inherit;
+    border: 0;
+    cursor: pointer;
+    color: #5b5b5c;
+}
+.concordance-title-button:hover {
+    color: #282828;
+}
+
+
+/*********
+Full Screen
+**********/
+
+@media screen and (min-width: 800px) {
+
+    /**************************/
+    /*********Universal********/
+
+    .name {
+        display: block;
+    }
+
+    /*add grid on full screen*/
+    .large-screen {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+	    overflow: auto;
+        background-color: #f8f9fb;
+    }
+
+    /*limit width of content and center grid*/
+    .center {
+        margin-top: 2em;
+    	border: solid 1px #ccc;
+        grid-column: 2 / 3;
+        min-width: 750px;
+        width: 60vw;
+        box-shadow: 5px 5px 15px #aaaaaa;
+    }
+
+
+    /***********************/
+    /*********Index*********/
+    /* add a radius to the index container */
+    .index-container {
+        overflow: visible;
+        border-radius: 4px;
+        height: 88.5vh;
+    }
+
+    .card {
+        margin-bottom: 5px;
+    }
+
+    .top-card {
+        margin-top: 0;
+    }
+
+    .text-editer-container {
+        height: 75vh;
+    }
+
+
+    /***********************/
+    /*********Page*********/
+    .page-editor-container {
+    	overflow: visible;
+    	height: auto;
+    	background-color: white;
+    }
+
+    .page-body {
+	    padding: 0px 80px;
+    }
+
+    .concordance-title-container::before {
+	    top: 18px;
+    }
+
+
+}
