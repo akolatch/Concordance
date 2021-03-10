@@ -1,20 +1,89 @@
+from cs50 import SQL
+db = SQL("sqlite:///concordance.db")
 
-def find(table_name, return_data, params, variables):
-  query_string = f"SELECT {return_data} FROM {table_name} WHERE {params}"
-  data = db.execute(query_string, *variables)
-  return data
 
-def create(table_name, params, place_holder, variables):
-  query_string = f"INSERT INTO {table_name} ({params}) VALUES ({place_holder})"
-  db.execute(query_string, *variables)
+class model:
+    def __init__(self, table):
+        self.table = table
 
-def delete(table_name, params, variables):
-  query_string = f"DELETE FROM {table_name} WHERE {params}"
-  db.execute(query_string, *variables)
+    # helper functions for converting inputs into properly formatted strings
+    def param_formatter(self, param):
+        return f'{" = ? AND ".join(param)} = ?'
 
-def update(table_name, update_data, target):
-  query_string = f"UPDATE {table_name} SET {update_data} WHERE {target}"
-  db.execute(query_string, *variables)
+    def gen_placeholder(self, data):
+        return f'{"?," * (len(data) - 1)}?'
 
-def test():
-  print('yep')
+    def update_fields(self, data):
+        if len(data) == 1:
+            return self.param_formatter(data.keys())
+        else:
+            field_names = f'{", ".join(data.keys())}'
+            placeholder = self.gen_placeholder(data)
+            return f'({field_names}) = ({placeholder})'
+
+    # core queries
+    # SELECT query
+    # args:
+        # conditions: DICT where the keys = the fields name of the condition and the value is the value need to be matched
+        #  fields: LIST <STRING> where each value is the field you wish to return, default is * (ALL)
+    # return:
+        # LIST<DICT> where each value is a dict representing a row of data that matched the query
+            # in each dict the keys are the fields desired with the values being the data stored at that field
+    def find(self, conditions, fields=['*']):
+        fields_string = f'{", ".join(fields)}'
+        condition_string = self.param_formatter(conditions.keys())
+        values = conditions.values()
+        query_string = f'SELECT {fields_string} FROM {self.table} WHERE {condition_string}'
+        return db.execute(query_string, *values)
+
+    # INSERT query
+    # args:
+        # data: DICT where the keys fields that are going to be created and the values are the data to be stores in those fields
+    # Return:
+        # NUMBER: the Id of the newly created data
+    def create(self, data):
+        fields = f'{", ".join(data.keys())}'
+        placeholders = self.gen_placeholder(data)
+        values = data.values()
+        query_string = f'INSERT INTO {self.table} ({fields}) VALUES ({placeholders})'
+        return db.execute(query_string, *values)
+
+    # UPDATE query
+    # args:
+        # data: DICT where the keys fields that are going to be updated and the values is the data to for those updates
+        # conditions: DICT where the keys = the fields name of the condition and the value is the value need to be matched
+    # Return:
+        # NUMBER: the number of fields updated
+    def update(self, data, conditions):
+        fields = self.update_fields(data)
+        condition_string = self.param_formatter(conditions.keys())
+        values = [*data.values(), *conditions.values()]
+        query_string = f"UPDATE {self.table} SET {fields} WHERE {condition_string}"
+        db.execute(query_string, *values)
+
+    def delete(self, conditions):
+        condition_string = self.param_formatter(conditions.keys())
+        values = conditions.values()
+        query_string = f'DELETE FROM {self.table} WHERE {condition_string}'
+        db.execute(query_string, *values)
+
+
+# example
+journals = model('journals')
+journal_members = model('model')
+
+# now
+
+
+def new_journal(user_id, name):
+    new_id = journals.create({'name': name, 'creator_id': user_id})
+    journal_members.create({'journal_id': new_id, 'user_id': user_id})
+
+# vs
+
+
+def new_journal_old(user_id, name):
+    new_id = db.execute("INSERT INTO journals (name, creator_id) VALUES (:name, :creator_id)",
+                        name=name, creator_id=user_id)
+    db.execute("INSERT INTO journal_members (journal_id, user_id) VALUES (:journal_id, :user_id)",
+               journal_id=new_id, user_id=user_id)
