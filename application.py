@@ -1,5 +1,3 @@
-# application to searve the concordane web apps
-
 from cs50 import SQL
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, Markup
 from flask_session import Session
@@ -9,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from query_model import db
 from controllers import render_index
+from page_controllers import open_page, create_page, update_page, remove_page, page_search
 from helpers import apology, login_required, page_loader, new_journal, concordance_search
 
 # Configure application
@@ -34,13 +33,10 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
-# db = SQL("sqlite:///concordance.db")
-
 
 @app.route("/")
 @login_required
-def index(warning=""):
+def index():
     """Show all of users content"""
     return render_index()
 
@@ -215,59 +211,7 @@ def search():
     if search_term == "":
         return render_index("You must include a search term to search")
 
-    temp_results = db.execute("SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE title = :search_term ORDER BY title ASC",
-                              search_term=search_term)
-
-    search_results = concordance_search(search_term, session["user_id"])
-
-    # Combine results
-    temp_results += search_results
-
-    if temp_results == []:
-        return render_index("No Results Found!")
-    if len(temp_results) == 1:
-        return page_loader(temp_results[0]["id"], -1)
-
-    results = []
-    for page in temp_results:
-        if page not in results:
-            results.append(page)
-
-    # Sett warning
-    warning = ""
-    display_warning = "none"
-
-    # Select all pages the user has access to
-    pages = db.execute("SELECT id, pages.journal_id, title FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC",
-                       user_id=session["user_id"])
-
-    # Select all journals a user has access to
-    journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
-                          user_id=session["user_id"])
-
-    username = db.execute("SELECT username FROM users WHERE id = :user_id",
-                          user_id=session["user_id"])
-    user_journal = db.execute("SELECT id FROM journals WHERE name = :username",
-                              username=username[0]["username"])
-
-    num_journals = len(journals)
-    # new user check
-    if not pages and num_journals == 1:
-        new_user = True
-
-        # load new_user index
-        return render_template("index.html", display_warning=display_warning, warning=warning, username=username, user_journal=user_journal, new_user=new_user, journals=journals)
-    else:
-        new_user = False
-
-    # check for invites
-    invites = db.execute(
-        "SELECT journal_id, sender FROM  journal_invites WHERE user_id = :user_id", user_id=session["user_id"])
-
-    search = True
-
-    # load index
-    return render_template("index.html", search=search, results=results, invites=invites, display_warning=display_warning, warning=warning, username=username, user_journal=user_journal, new_user=new_user, journals=journals, pages=pages)
+    return page_search(search_term)
 
 
 @app.route("/new_page", methods=["POST"])
@@ -278,25 +222,12 @@ def new_journal_page():
     page_name = request.form.get("page_name")
     journal_id = request.form.get("journal_id")
 
-    # strip ac
-    page_name = page_name.strip()
     if page_name == "":
         return render_index("You must give a Title to your new page")
 
-    test = db.execute("SELECT id FROM pages WHERE title = :title AND journal_id = :journal_id",
-                      title=page_name, journal_id=journal_id)
-    if test:
-        print('***** working')
-        return render_index("The page you are trying to create alread exsists")
+    page_name = page_name.strip()
 
-    page_id = db.execute("INSERT INTO pages (title, journal_id) VALUES (:title, :journal_id)",
-                         title=page_name, journal_id=journal_id)
-    # new_page_id = db.execute("SELECT id FROM pages WHERE title = :title AND journal_id = :journal_id",
-    #                          title=page_name, journal_id=journal_id)
-
-    # page_id = new_page_id[0]["id"]
-
-    return page_loader(page_id, -1)
+    return create_page(page_name, journal_id)
 
 
 @app.route("/load_page", methods=["POST"])
@@ -306,7 +237,7 @@ def load_page():
 
     # Load page from id
     page_id = request.form.get("page_id")
-    return page_loader(page_id, -1)
+    return open_page(page_id)
 
 
 @app.route("/concordance", methods=["POST"])
@@ -317,7 +248,7 @@ def concordance():
     # Load page from id
     concordance_id = request.form.get("concordance_id")
     page_id = request.form.get("page_id")
-    return page_loader(page_id, concordance_id)
+    return open_page(page_id, concordance_id)
 
 
 @app.route("/move_page", methods=["POST"])
@@ -359,26 +290,7 @@ def save_page():
     text = request.form.get("page_text")
 
     title = title.strip()
-
-    checker = db.execute(
-        "SELECT title, journal_id FROM pages WHERE id = :page_id", page_id=page_id)
-
-    if title == checker[0]["title"]:
-        db.execute("UPDATE pages SET content = :text WHERE id = :page_id",
-                   text=text, page_id=page_id)
-        return page_loader(page_id, -1, "saved")
-    temp_titles = db.execute(
-        "SELECT * FROM pages WHERE journal_id = :journal_id", journal_id=checker[0]["journal_id"])
-
-    for name in temp_titles:
-        if title == name["title"]:
-            db.execute("UPDATE pages SET content = :text WHERE id = :page_id",
-                       text=text, page_id=page_id)
-            return page_loader(page_id, -1, "The new title of this page already exsits. The page was save under its old name.")
-
-    db.execute("UPDATE pages SET (title, content) = (:title, :text)  WHERE id = :page_id",
-               title=title, text=text, page_id=page_id)
-    return page_loader(page_id, -1, "saved")
+    return update_page(title, page_id, text)
 
 
 @app.route("/delete_page", methods=["POST"])
@@ -388,14 +300,9 @@ def delete_page():
 
     page_id = request.form.get("page_id")
 
-    checker = db.execute("SELECT creator_id FROM journals JOIN pages ON journals.id = pages.journal_id WHERE pages.id = :page_id AND creator_id = :user_id",
-                         page_id=page_id, user_id=session["user_id"])
+    message = remove_page(page_id)
 
-    if not checker:
-        return render_index("You cannot delete a page in journal if you are not an admin")
-
-    db.execute("DELETE FROM pages WHERE id = ?", page_id)
-    return render_index("Page Deleted")
+    return render_index(message)
 
 
 @app.route("/delete_journal", methods=["POST"])
@@ -482,10 +389,10 @@ def decline_invite():
     return redirect("/")
 
 
-@app.route("/account", methods=["GET", "POST"])
+@app.route("/acount", methods=["GET", "POST"])
 @login_required
-def account():
-    """manage account activity"""
+def acount():
+    """manage acount activity"""
     if request == "GET":
         user = db.execute(
             "SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
@@ -494,7 +401,7 @@ def account():
         journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
                               user_id=session["user_id"])
 
-        return render_template("account.html", user=user, journals=journals)
+        return render_template("acount.html", user=user, journals=journals)
 
     return apology("TODO")
 

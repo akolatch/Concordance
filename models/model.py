@@ -13,9 +13,9 @@ class Journal_Model(Query_Model):
         query_string = 'SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC'
         return db.execute(query_string, user_id=user_id)
 
-    def find_by_page_creater(self, user_id):
+    def find_by_page_creator(self, page_id, user_id):
         query_string = 'SELECT creator_id FROM journals JOIN pages ON journals.id = pages.journal_id WHERE pages.id = :page_id AND creator_id = :user_id'
-        return db.execute(query_string, user_id=user_id)
+        return db.execute(query_string, page_id=page_id, user_id=user_id)
 
 
 class Page_Model(Query_Model):

@@ -47,8 +47,7 @@ class Query_Model:
         placeholders = self.gen_placeholder(data)
         values = data.values()
         query_string = f'INSERT INTO {self.table} ({fields}) VALUES ({placeholders})'
-        print(query_string)
-        # return db.execute(query_string, *values)
+        return db.execute(query_string, *values)
 
     # UPDATE query
     # args:
