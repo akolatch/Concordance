@@ -3,11 +3,9 @@ import os
 import requests
 import urllib.parse
 
+from query_model import db
 from flask import redirect, render_template, request, session, Markup
 from functools import wraps
-
-# Give helper access to DB
-db = SQL("sqlite:///concordance.db")
 
 
 def apology(message, code=400):
@@ -87,7 +85,8 @@ def concordance_list(page_id, user_id):
     """scan thepages text and get a list of all other pages mentioned in a given page"""
 
     # Get the page info and all the page titles availible to the user
-    text = db.execute("SELECT id, content, title FROM pages WHERE id = :page_id", page_id=page_id)
+    text = db.execute(
+        "SELECT id, content, title FROM pages WHERE id = :page_id", page_id=page_id)
     titles = db.execute(
         "SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC", user_id=user_id)
 
@@ -100,7 +99,7 @@ def concordance_list(page_id, user_id):
         if title["id"] != text[0]["id"]:
             found = stripped_text.find(search_format(title["title"]))
             if found >= 0:
-               temp_list.append(title)
+                temp_list.append(title)
 
     search_results = concordance_search(text[0]["title"], user_id)
 
@@ -145,9 +144,11 @@ def page_loader(page_id, concordance_id, warning=""):
                           user_id=session["user_id"])
 
     # Retrieve page from DB
-    display_page = db.execute("SELECT * FROM pages WHERE id = :page_id", page_id=page_id)
+    display_page = db.execute(
+        "SELECT * FROM pages WHERE id = :page_id", page_id=page_id)
 
-    page_journal = db.execute("SELECT id, name FROM journals WHERE id = :journal_id", journal_id=display_page[0]["journal_id"])
+    page_journal = db.execute(
+        "SELECT id, name FROM journals WHERE id = :journal_id", journal_id=display_page[0]["journal_id"])
     # Error Check
     if not display_page:
         return apology("page not found", 403)
@@ -169,10 +170,10 @@ def page_loader(page_id, concordance_id, warning=""):
 
 # Set up a new journal
 def new_journal(user_id, name):
+    new_id = db.execute(
+        "INSERT INTO journals (name, creator_id) VALUES (?,?)", name, user_id)
 
-    db.execute("INSERT INTO journals (name, creator_id) VALUES (:name, :creator_id)",
-               name=name, creator_id=user_id)
-    new_journal = db.execute("SELECT id FROM journals WHERE name = :name AND creator_id = :creator_id",
-                             name=name, creator_id=user_id)
+    # new_id = db.execute("INSERT INTO journals (name, creator_id) VALUES (:name, :creator_id)",
+    #          name=name, creator_id=user_id)
     db.execute("INSERT INTO journal_members (journal_id, user_id) VALUES (:journal_id, :user_id)",
-               journal_id=new_journal[0]["id"], user_id=user_id)
+               journal_id=new_id, user_id=user_id)
