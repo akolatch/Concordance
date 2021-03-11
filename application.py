@@ -7,6 +7,8 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from query_model import db
+from controllers import render_index
 from helpers import apology, login_required, page_loader, new_journal, concordance_search
 
 # Configure application
@@ -16,6 +18,8 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Ensure responses aren't cached
+
+
 @app.after_request
 def after_request(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -31,50 +35,14 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///concordance.db")
+# db = SQL("sqlite:///concordance.db")
 
 
 @app.route("/")
 @login_required
 def index(warning=""):
     """Show all of users content"""
-
-    # no search
-    search = False
-
-    # handle Warning
-    display_warning = "block"
-    if warning == "":
-        display_warning = "none"
-
-    # Select all pages the user has access to
-    pages = db.execute("SELECT id, pages.journal_id, title FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC",
-                       user_id=session["user_id"])
-
-    # Select all journals a user has access to
-    journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
-                          user_id=session["user_id"])
-
-    username = db.execute("SELECT username FROM users WHERE id = :user_id",
-                          user_id=session["user_id"])
-    user_journal = db.execute("SELECT id FROM journals WHERE name = :username",
-                              username=username[0]["username"])
-
-    num_journals = len(journals)
-    # new user check
-    if not pages and num_journals == 1:
-        new_user = True
-
-        # load new_user index
-        return render_template("index.html", search=search, display_warning=display_warning, warning=warning, username=username, user_journal=user_journal, new_user=new_user, journals=journals)
-    else:
-        new_user = False
-
-    # check for invites
-    invites = db.execute("SELECT journal_id, sender FROM  journal_invites WHERE user_id = :user_id", user_id=session["user_id"])
-
-    # load index
-    return render_template("index.html", search=search, invites=invites, display_warning=display_warning, warning=warning, username=username, user_journal=user_journal, new_user=new_user, journals=journals, pages=pages)
+    return render_index()
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -197,10 +165,12 @@ def register():
         pass_hash = generate_password_hash(password)
 
         # Store password and hash in the users db
-        db.execute("INSERT INTO users (username, hash) VALUES (:username, :pass_hash)", username=username, pass_hash=pass_hash)
+        db.execute("INSERT INTO users (username, hash) VALUES (:username, :pass_hash)",
+                   username=username, pass_hash=pass_hash)
 
         # set up new user db
-        new_user = db.execute("SELECT id FROM users WHERE username = :username", username=username)
+        new_user = db.execute(
+            "SELECT id FROM users WHERE username = :username", username=username)
         user_id = new_user[0]["id"]
         new_journal(user_id, username)
 
@@ -217,7 +187,7 @@ def new_journals():
     journal_name = journal_name.strip()
 
     if journal_name == "":
-        return index("You must give a Title to your new journal")
+        return render_index("You must give a Title to your new journal")
 
     # Journal name taken check
     name_check = db.execute("SELECT name FROM journals WHERE creator_id = :creator",
@@ -225,7 +195,7 @@ def new_journals():
 
     for name in name_check:
         if journal_name.lower() == name["name"].lower():
-            return index("The journal you are trying to create alread exsists")
+            return render_index("The journal you are trying to create alread exsists")
 
     # creat new journal
     new_journal(session["user_id"], journal_name)
@@ -243,10 +213,10 @@ def search():
     search_term = search_term.strip()
 
     if search_term == "":
-        return index("You must include a search term to search")
+        return render_index("You must include a search term to search")
 
-    temp_results = db.execute( "SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE title = :search_term ORDER BY title ASC",
-                               search_term=search_term)
+    temp_results = db.execute("SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE title = :search_term ORDER BY title ASC",
+                              search_term=search_term)
 
     search_results = concordance_search(search_term, session["user_id"])
 
@@ -254,7 +224,7 @@ def search():
     temp_results += search_results
 
     if temp_results == []:
-        return index("No Results Found!")
+        return render_index("No Results Found!")
     if len(temp_results) == 1:
         return page_loader(temp_results[0]["id"], -1)
 
@@ -291,7 +261,8 @@ def search():
         new_user = False
 
     # check for invites
-    invites = db.execute("SELECT journal_id, sender FROM  journal_invites WHERE user_id = :user_id", user_id=session["user_id"])
+    invites = db.execute(
+        "SELECT journal_id, sender FROM  journal_invites WHERE user_id = :user_id", user_id=session["user_id"])
 
     search = True
 
@@ -310,21 +281,20 @@ def new_journal_page():
     # strip ac
     page_name = page_name.strip()
     if page_name == "":
-        return index("You must give a Title to your new page")
+        return render_index("You must give a Title to your new page")
 
-    name_check = db.execute("SELECT title FROM pages where journal_id = :journal_id",
-                            journal_id=journal_id)
+    test = db.execute("SELECT id FROM pages WHERE title = :title AND journal_id = :journal_id",
+                      title=page_name, journal_id=journal_id)
+    if test:
+        print('***** working')
+        return render_index("The page you are trying to create alread exsists")
 
-    for name in name_check:
-        if page_name.lower() == name["title"].lower():
-            return index("The page you are trying to create alread exsists")
+    page_id = db.execute("INSERT INTO pages (title, journal_id) VALUES (:title, :journal_id)",
+                         title=page_name, journal_id=journal_id)
+    # new_page_id = db.execute("SELECT id FROM pages WHERE title = :title AND journal_id = :journal_id",
+    #                          title=page_name, journal_id=journal_id)
 
-    db.execute("INSERT INTO pages (title, journal_id) VALUES (:title, :journal_id)",
-               title=page_name, journal_id=journal_id)
-    new_page_id = db.execute("SELECT id FROM pages WHERE title = :title AND journal_id = :journal_id",
-                             title=page_name, journal_id=journal_id)
-
-    page_id = new_page_id[0]["id"]
+    # page_id = new_page_id[0]["id"]
 
     return page_loader(page_id, -1)
 
@@ -390,19 +360,24 @@ def save_page():
 
     title = title.strip()
 
-    checker = db.execute("SELECT title, journal_id FROM pages WHERE id = :page_id", page_id=page_id)
+    checker = db.execute(
+        "SELECT title, journal_id FROM pages WHERE id = :page_id", page_id=page_id)
 
     if title == checker[0]["title"]:
-        db.execute("UPDATE pages SET content = :text WHERE id = :page_id", text=text, page_id=page_id)
+        db.execute("UPDATE pages SET content = :text WHERE id = :page_id",
+                   text=text, page_id=page_id)
         return page_loader(page_id, -1, "saved")
-    temp_titles = db.execute("SELECT * FROM pages WHERE journal_id = :journal_id", journal_id=checker[0]["journal_id"])
+    temp_titles = db.execute(
+        "SELECT * FROM pages WHERE journal_id = :journal_id", journal_id=checker[0]["journal_id"])
 
     for name in temp_titles:
         if title == name["title"]:
-            db.execute("UPDATE pages SET content = :text WHERE id = :page_id", text=text, page_id=page_id)
+            db.execute("UPDATE pages SET content = :text WHERE id = :page_id",
+                       text=text, page_id=page_id)
             return page_loader(page_id, -1, "The new title of this page already exsits. The page was save under its old name.")
 
-    db.execute("UPDATE pages SET (title, content) = (:title, :text)  WHERE id = :page_id", title=title, text=text, page_id=page_id)
+    db.execute("UPDATE pages SET (title, content) = (:title, :text)  WHERE id = :page_id",
+               title=title, text=text, page_id=page_id)
     return page_loader(page_id, -1, "saved")
 
 
@@ -417,10 +392,10 @@ def delete_page():
                          page_id=page_id, user_id=session["user_id"])
 
     if not checker:
-        return index("You cannot delete a page in journal if you are not an admin")
+        return render_index("You cannot delete a page in journal if you are not an admin")
 
-    db.execute("DELETE FROM pages WHERE id = :page_id", page_id=page_id)
-    return index("Page Deleted")
+    db.execute("DELETE FROM pages WHERE id = ?", page_id)
+    return render_index("Page Deleted")
 
 
 @app.route("/delete_journal", methods=["POST"])
@@ -436,13 +411,16 @@ def delete_journal():
     if not checker:
         db.execute("DELETE FROM journal_members WHERE journal_id = :journal_id AND user_id = :user_id",
                    journal_id=journal_id, user_id=session["user_id"])
-        return index("You have left the journal")
+        return render_index("You have left the journal")
 
-    db.execute("DELETE FROM pages WHERE journal_id = :journal_id", journal_id=journal_id)
-    db.execute("DELETE FROM journals WHERE id = :journal_id", journal_id=journal_id)
-    db.execute("DELETE FROM journal_members WHERE journal_id = :journal_id", journal_id=journal_id)
+    db.execute("DELETE FROM pages WHERE journal_id = :journal_id",
+               journal_id=journal_id)
+    db.execute("DELETE FROM journals WHERE id = :journal_id",
+               journal_id=journal_id)
+    db.execute("DELETE FROM journal_members WHERE journal_id = :journal_id",
+               journal_id=journal_id)
 
-    return index("Journal Deleted")
+    return render_index("Journal Deleted")
 
 
 @app.route("/send_invite", methods=["POST"])
@@ -451,11 +429,12 @@ def send_invite():
     """Send  journal share invite to user"""
 
     recipient_name = request.form.get("username")
-    recipient = db.execute("SELECT * FROM users WHERE username = :username", username=recipient_name)
+    recipient = db.execute(
+        "SELECT * FROM users WHERE username = :username", username=recipient_name)
 
     # Check if user exsists
     if not recipient:
-        return index("The user you are trying to share with could not be found")
+        return render_index("The user you are trying to share with could not be found")
 
     journal_id = request.form.get("journal_id")
 
@@ -465,11 +444,12 @@ def send_invite():
     # if the user is not already in the journal
     if not jounal_check:
         sender = request.form.get("sender")
-        temp_name = db.execute("SELECT name FROM journals WHERE id = :journal_id", journal_id=journal_id)
+        temp_name = db.execute(
+            "SELECT name FROM journals WHERE id = :journal_id", journal_id=journal_id)
         db.execute("INSERT INTO journal_invites (user_id, journal_id, sender, journal_name) VALUES (:user_id, :journal_id, :sender, :journal_name)",
                    user_id=recipient[0]["id"], journal_id=journal_id, sender=sender, journal_name=temp_name[0]["name"])
 
-    return index("Invite Sent")
+    return render_index("Invite Sent")
 
 
 @app.route("/accept_invite", methods=["POST"])
@@ -497,27 +477,24 @@ def decline_invite():
 
     # Remove invite from db
     journal_id = request.form.get("journal_id")
-    db.execute("DELETE FROM journal_invites WHERE journal_id = :journal_id AND user_id = :user_id",
-               journal_id=journal_id, user_id=session["user_id"])
 
     # redirect back to homepage
     return redirect("/")
 
 
-@app.route("/acount", methods=["GET", "POST"])
+@app.route("/account", methods=["GET", "POST"])
 @login_required
-def acount():
-    """manage acount activity"""
+def account():
+    """manage account activity"""
     if request == "GET":
-        user = db.execute("SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
+        user = db.execute(
+            "SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
 
         # Select all journals a user has access to
         journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
-                          user_id=session["user_id"])
+                              user_id=session["user_id"])
 
-
-
-        return render_template("acount.html", user=user, journals=journals)
+        return render_template("account.html", user=user, journals=journals)
 
     return apology("TODO")
 
