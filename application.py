@@ -5,10 +5,13 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from query_model import db
+import journal
+import page
+import invite
 from controllers import render_index
-from page_controllers import open_page, create_page, update_page, remove_page, page_search
-from helpers import apology, login_required, page_loader, new_journal, concordance_search
+from helpers import apology, login_required, new_journal
+
+from query_model import db
 
 # Configure application
 app = Flask(__name__)
@@ -100,39 +103,39 @@ def register():
     # Set username field to blank
     username = ""
 
-    # Username requirment text
+    # Username requirements text
     username_instructions = "Your username must be between 6 and 30 characters long."
 
-    # Username requirment display setting
+    # Username requirement display setting
     username_instructions_display = "none"
 
-    # Password requirment text
+    # Password requirement text
     password_instructions = "Passwords must be at least 8 characters long."
 
-    # Password requirment display setting
+    # Password requirement display setting
     password_instructions_display = "none"
 
     # Password form disabled status
     password_form = "disabled"
 
-    # On GET request render regiser.html with base instructions
+    # On GET request render register.html with base instructions
     if request.method == "GET":
         return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
 
-    # On POST request check to confirm all username and password requirments were met.
+    # On POST request check to confirm all username and password requirements were met.
     else:
 
         # set variables for usernam, password
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # Confirm the username doesnt already exsist
+        # Confirm the username doesn't already exist
         if db.execute("SELECT username FROM users WHERE username = ?", username):
 
             # Reset username to blank
             username = ""
 
-            # Set new username requirment text and display setting
+            # Set new username requirement text and display setting
             username_instructions = "Sorry, that useusername is taken. Try another."
             username_instructions_display = "block"
             return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
@@ -140,7 +143,7 @@ def register():
         # Confirm the password contains at least one capitalized letter
         if password.islower():
 
-            # Set new password requirment text and display setting
+            # Set new password requirement text and display setting
             password_instructions = "Your password must contain at least one character that is capitalized."
             password_instructions_display = "block"
             password_form = ""
@@ -149,7 +152,7 @@ def register():
         # Confirm the password contains a combination of both letters and numbers
         if password.isnumeric() or password.isalpha():
 
-            # Set new password requirment text and display setting
+            # Set new password requirement text and display setting
             password_instructions = "Your password must contain a combination of both numbers and letters."
             password_instructions_display = "block"
             password_form = ""
@@ -185,18 +188,7 @@ def new_journals():
     if journal_name == "":
         return render_index("You must give a Title to your new journal")
 
-    # Journal name taken check
-    name_check = db.execute("SELECT name FROM journals WHERE creator_id = :creator",
-                            creator=session["user_id"])
-
-    for name in name_check:
-        if journal_name.lower() == name["name"].lower():
-            return render_index("The journal you are trying to create alread exsists")
-
-    # creat new journal
-    new_journal(session["user_id"], journal_name)
-
-    return redirect("/")
+    return journal.create(journal_name)
 
 
 @app.route("/search", methods=["POST"])
@@ -204,30 +196,28 @@ def new_journals():
 def search():
     """execute a search"""
 
-    # clean and check search term
     search_term = request.form.get("search-term")
     search_term = search_term.strip()
 
     if search_term == "":
         return render_index("You must include a search term to search")
 
-    return page_search(search_term)
+    return page.search(search_term)
 
 
 @app.route("/new_page", methods=["POST"])
 @login_required
-def new_journal_page():
+def new_page():
     """open a new page"""
 
-    page_name = request.form.get("page_name")
     journal_id = request.form.get("journal_id")
+    page_name = request.form.get("page_name")
+    page_name = page_name.strip()
 
     if page_name == "":
         return render_index("You must give a Title to your new page")
 
-    page_name = page_name.strip()
-
-    return create_page(page_name, journal_id)
+    return page.create(page_name, journal_id)
 
 
 @app.route("/load_page", methods=["POST"])
@@ -235,9 +225,9 @@ def new_journal_page():
 def load_page():
     """open a saved page"""
 
-    # Load page from id
     page_id = request.form.get("page_id")
-    return open_page(page_id)
+
+    return page.load(page_id)
 
 
 @app.route("/concordance", methods=["POST"])
@@ -245,39 +235,22 @@ def load_page():
 def concordance():
     """append concordance onto a page"""
 
-    # Load page from id
     concordance_id = request.form.get("concordance_id")
     page_id = request.form.get("page_id")
-    return open_page(page_id, concordance_id)
+
+    return page.load(page_id, concordance_id)
 
 
 @app.route("/move_page", methods=["POST"])
 @login_required
 def move_page():
-    """move a page to a differnt journal"""
+    """move a page to a different journal"""
 
     page_id = request.form.get("page_id")
     old_journal = request.form.get("old_journal_id")
     new_journal = request.form.get("new_journal_id")
 
-    # Check to make sure this is your journal to move pages out of
-    admin_checker = db.execute("SELECT creator_id FROM journals WHERE id = :old_journal AND creator_id = :user_id",
-                               old_journal=old_journal, user_id=session["user_id"])
-    if not admin_checker:
-        return page_loader(page_id, -1, "You cannot move pages from journals you did not create.")
-
-    # Check to make sure the page name doesnt already exsist in the journal
-    page_title = db.execute("SELECT title FROM pages WHERE id = :page_id",
-                            page_id=page_id)
-    name_check = db.execute("SELECT title FROM pages WHERE journal_id = :journal_id",
-                            journal_id=new_journal)
-    for name in name_check:
-        if name["title"].lower() == page_title[0]["title"].lower():
-            return page_loader(page_id, -1, "There is already a page with this title in the journal.")
-
-    db.execute("UPDATE pages SET journal_id = :new_journal WHERE id = :page_id",
-               new_journal=new_journal, page_id=page_id)
-    return page_loader(page_id, -1, "page moved")
+    return page.move(page_id, old_journal, new_journal)
 
 
 @app.route("/save_page", methods=["POST"])
@@ -285,12 +258,12 @@ def move_page():
 def save_page():
     """Save a Page"""
 
-    title = request.form.get("title")
     page_id = request.form.get("page_id")
     text = request.form.get("page_text")
-
+    title = request.form.get("title")
     title = title.strip()
-    return update_page(title, page_id, text)
+
+    return page.update(title, page_id, text)
 
 
 @app.route("/delete_page", methods=["POST"])
@@ -299,8 +272,7 @@ def delete_page():
     """Delete a page"""
 
     page_id = request.form.get("page_id")
-
-    message = remove_page(page_id)
+    message = page.remove(page_id)
 
     return render_index(message)
 
@@ -312,22 +284,7 @@ def delete_journal():
 
     journal_id = request.form.get("journal_id")
 
-    checker = db.execute("SELECT creator_id FROM journals WHERE id = :journal_id AND creator_id = :user_id",
-                         journal_id=journal_id, user_id=session["user_id"])
-
-    if not checker:
-        db.execute("DELETE FROM journal_members WHERE journal_id = :journal_id AND user_id = :user_id",
-                   journal_id=journal_id, user_id=session["user_id"])
-        return render_index("You have left the journal")
-
-    db.execute("DELETE FROM pages WHERE journal_id = :journal_id",
-               journal_id=journal_id)
-    db.execute("DELETE FROM journals WHERE id = :journal_id",
-               journal_id=journal_id)
-    db.execute("DELETE FROM journal_members WHERE journal_id = :journal_id",
-               journal_id=journal_id)
-
-    return render_index("Journal Deleted")
+    return journal.remove(journal_id)
 
 
 @app.route("/send_invite", methods=["POST"])
@@ -336,27 +293,10 @@ def send_invite():
     """Send  journal share invite to user"""
 
     recipient_name = request.form.get("username")
-    recipient = db.execute(
-        "SELECT * FROM users WHERE username = :username", username=recipient_name)
-
-    # Check if user exsists
-    if not recipient:
-        return render_index("The user you are trying to share with could not be found")
-
     journal_id = request.form.get("journal_id")
+    sender = request.form.get("sender")
 
-    jounal_check = db.execute("SELECT * FROM journal_members WHERE user_id = :user_id AND journal_id = :journal_id",
-                              user_id=recipient[0]["id"], journal_id=journal_id)
-
-    # if the user is not already in the journal
-    if not jounal_check:
-        sender = request.form.get("sender")
-        temp_name = db.execute(
-            "SELECT name FROM journals WHERE id = :journal_id", journal_id=journal_id)
-        db.execute("INSERT INTO journal_invites (user_id, journal_id, sender, journal_name) VALUES (:user_id, :journal_id, :sender, :journal_name)",
-                   user_id=recipient[0]["id"], journal_id=journal_id, sender=sender, journal_name=temp_name[0]["name"])
-
-    return render_index("Invite Sent")
+    return invite.send(recipient_name, journal_id, sender)
 
 
 @app.route("/accept_invite", methods=["POST"])
@@ -366,15 +306,7 @@ def accept_invite():
 
     journal_id = request.form.get("journal_id")
 
-    # update journal members
-    db.execute("INSERT INTO journal_members (journal_id, user_id) VALUES (:journal_id, :user_id)",
-               journal_id=journal_id, user_id=session["user_id"])
-    # Remove invite from db
-    db.execute("DELETE FROM journal_invites WHERE journal_id = :journal_id AND user_id = :user_id",
-               journal_id=journal_id, user_id=session["user_id"])
-
-    # redirect back to homepage
-    return redirect("/")
+    return invite.respond(journal_id)
 
 
 @app.route("/decline_invite", methods=["POST"])
@@ -382,17 +314,16 @@ def accept_invite():
 def decline_invite():
     """decline an invite"""
 
-    # Remove invite from db
     journal_id = request.form.get("journal_id")
 
-    # redirect back to homepage
-    return redirect("/")
+    return invite.respond(journal_id, False)
 
 
-@app.route("/acount", methods=["GET", "POST"])
+# TODO:
+@app.route("/account", methods=["GET", "POST"])
 @login_required
-def acount():
-    """manage acount activity"""
+def account():
+    """manage account activity"""
     if request == "GET":
         user = db.execute(
             "SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
@@ -401,11 +332,11 @@ def acount():
         journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
                               user_id=session["user_id"])
 
-        return render_template("acount.html", user=user, journals=journals)
-
+        return render_template("account.html", user=user, journals=journals)
     return apology("TODO")
 
 
+# errors
 def errorhandler(e):
     """Handle error"""
     if not isinstance(e, HTTPException):
