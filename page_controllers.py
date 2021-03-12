@@ -1,15 +1,13 @@
 # check if req and red are needed
-from flask import render_template, session, Markup, request, redirect
-from models import Page_Model, Journal_Model
+from flask import render_template, session, Markup
+from models import Page, Journal
 from controllers import render_index
 from helpers import concordance_list, concordance_search
 
-Page = Page_Model()
-Journal = Journal_Model()
-
 
 # /load_page POST --> /pages/load POST
-def open_page(page_id, concordance_id=False, warning=""):
+# /concordance POST --> /pages/concordance POST
+def load(page_id, concordance_id=False, warning=""):
     """open page"""
 
     user = session["user_id"]
@@ -57,39 +55,38 @@ def open_page(page_id, concordance_id=False, warning=""):
 
 
 # /new_page POST --> /pages POST
-def create_page(page_name, journal_id):
+def create(page_name, journal_id):
     """create new page"""
 
     name_check = Page.find(
         {'title': page_name, 'journal_id': journal_id}, ['id'])
 
     if name_check:
-        return render_index("The page you are trying to create alread exsists")
+        return render_index("The page you are trying to create already exists")
 
     page_id = Page.create({'title': page_name, 'journal_id': journal_id})
 
-    return open_page(page_id)
+    return load(page_id)
 
 
 # /save_page POST --> /pages/save POST
-def update_page(title, page_id, text):
+def update(title, page_id, text):
 
     journal_id = Page.find({'id': page_id}, ['journal_id'])[0]["journal_id"]
 
-    checker = Page.find(
-        {'journal_id': journal_id, 'title': title}, ['id'])[0]['id']
+    checker = Page.find({'journal_id': journal_id, 'title': title}, ['id'])
 
-    if checker and checker != int(page_id):
+    if checker and checker[0]['id'] != int(page_id):
         Page.update({'content': text}, {'id': page_id})
-        return open_page(page_id, False, "The new title for this page already exsits. The page was save under its old title.")
+        return load(page_id, False, "The new title for this page already exists. The page was save under its old title.")
 
     Page.update({'title': title, 'content': text}, {'id': page_id})
 
-    return open_page(page_id, False, "saved")
+    return load(page_id, False, "saved")
 
 
 # /delete_page POST --> /pages/delete POST
-def remove_page(page_id):
+def remove(page_id):
     """Delete a page"""
 
     user = session["user_id"]
@@ -103,11 +100,8 @@ def remove_page(page_id):
     return "Page Deleted"
 
 
-# /concordance POST --> /pages/concordance POST
-
-
 # /search Post --> /pages/search SET
-def page_search(search_term):
+def search(search_term):
     """execute a search"""
 
     user = session["user_id"]
@@ -122,7 +116,7 @@ def page_search(search_term):
     if search_results == []:
         return render_index("No Results Found!")
     if len(search_results) == 1:
-        return open_page(search_results[0]["id"])
+        return load(search_results[0]["id"])
 
     results = []
     for page in search_results:
@@ -130,3 +124,28 @@ def page_search(search_term):
             results.append(page)
 
     return render_index('', True, results)
+
+
+# /move_page POST --> /pages/move POST (/PUT)
+def move(page_id, old_journal, new_journal):
+    """move a page to a different journal"""
+
+    user = session["user_id"]
+
+    # Check to make sure this is your journal to move pages out of
+    checker = Journal.find(
+        {'id': old_journal, 'creator_id': user}, ['creator_id'])
+
+    if not checker:
+        return load(page_id, False, "You cannot move pages from journals you did not create.")
+
+    # Check to make sure the page name doesn't already exist in the journal
+    page_title = Page.find({'id': page_id}, ['title'])[0]["title"]
+    checker = Page.find(
+        {'journal_id': new_journal, 'title': page_title}, ['title'])
+    if checker:
+        return load(page_id, False, "There is already a page with this title in the journal.")
+
+    Page.update({'journal_id': new_journal}, {'id': page_id})
+
+    return load(page_id, False, "page moved")
