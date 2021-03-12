@@ -1,7 +1,3 @@
-# from cs50 import SQL
-# db = SQL("sqlite:///concordance.db")
-
-# from application import db
 from query_model import Query_Model, db
 
 
@@ -45,3 +41,10 @@ class Invite_Model(Query_Model):
 class Members_Model(Query_Model):
     def __init__(self):
         self.table = 'journal_members'
+
+
+Page = Page_Model()
+Journal = Journal_Model()
+User = User_Model()
+Invite = Invite_Model()
+Member = Members_Model()
