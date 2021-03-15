@@ -89,7 +89,7 @@ def register():
     """Register user"""
 
     # Set username field to blank
-    username = ""
+    # username = ""
 
     # Username requirement text
     username_instructions = "Your username must be between 6 and 30 characters long."
@@ -100,15 +100,16 @@ def register():
     # Password requirement text
     password_instructions = "Passwords must be at least 8 characters long."
 
-    # Password requirement display setting
-    password_instructions_display = "none"
-
-    # Password form disabled status
-    password_form = "disabled"
-
     # On GET request render register.html with base instructions
     if request.method == "GET":
-        return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
+        return render_template(
+            "register.html",
+            username="",
+            username_instructions=username_instructions,
+            username_instructions_display="none",
+            password_form="disabled",
+            password_instructions=password_instructions,
+            password_instructions_display="none")
 
     # On POST request check to confirm all username and password requirements were met.
     else:
