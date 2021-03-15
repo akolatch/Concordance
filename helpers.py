@@ -6,6 +6,7 @@ import urllib.parse
 from query_model import db
 from flask import redirect, render_template, request, session, Markup
 from functools import wraps
+from models import Page
 
 
 def apology(message, code=400):
@@ -37,7 +38,7 @@ def login_required(f):
     return decorated_function
 
 
-# strip html, punctuation, and excece " "
+# strip html, punctuation, and excese " "
 def search_format(text):
 
     # Strip punctuation and html
@@ -61,11 +62,11 @@ def search_format(text):
 # search
 def concordance_search(search_term, user_id):
 
-    # get all the content the user has accses to
-    check_contents = db.execute(
-        "SELECT id, title, pages.journal_id, content FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC", user_id=user_id)
+    # get all the content the user has access to
+    check_contents = Page.find_by_user(
+        user_id, ['id', 'title', 'pages.journal_id', 'content'])
 
-    # Creat a list of search results
+    # Create a list of search results
     search_results = []
     for content in check_contents:
         stripped_content = search_format(content["content"])
@@ -73,7 +74,7 @@ def concordance_search(search_term, user_id):
         if found >= 0:
             search_results.append(content)
 
-    # stip "content" from results
+    # strip "content" from results
     for result in search_results:
         result.pop("content")
 
@@ -84,11 +85,12 @@ def concordance_search(search_term, user_id):
 def concordance_list(page_id, user_id):
     """scan thepages text and get a list of all other pages mentioned in a given page"""
 
-    # Get the page info and all the page titles availible to the user
-    text = db.execute(
-        "SELECT id, content, title FROM pages WHERE id = :page_id", page_id=page_id)
-    titles = db.execute(
-        "SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC", user_id=user_id)
+    # Get the page info and all the page titles available to the user
+    text = Page.find({'id': page_id}, ['id', 'content', 'title'])
+    # text = db.execute("SELECT id, content, title FROM pages WHERE id = :page_id", page_id=page_id)
+    titles = Page.find_by_user(user_id, ['id', 'title', 'pages.journal_id'])
+    # titles = db.execute(
+    #     "SELECT title, id, pages.journal_id FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC", user_id=user_id)
 
     # Strip all html and punctuation from text
     stripped_text = search_format(text[0]["content"])
@@ -116,64 +118,3 @@ def concordance_list(page_id, user_id):
             concordance_list.append(item)
 
     return concordance_list
-
-
-# Load a page
-def page_loader(page_id, concordance_id, warning=""):
-    """Core page loading function """
-    # check to see if this is a concordance load
-    if concordance_id == -1:
-        concordance_page = None
-        concordance_content = ""
-    else:
-        concordance_page = db.execute("SELECT id, content, title FROM pages WHERE id = :concordance_id",
-                                      concordance_id=concordance_id)
-        concordance_content = Markup(concordance_page[0]["content"])
-
-    # Check if there is a load warning
-    display_warning = "block"
-    if warning == "":
-        display_warning = "none"
-
-    # Select all pages the user has access to
-    pages = db.execute("SELECT id, pages.journal_id, title FROM pages JOIN journal_members ON pages.journal_id = journal_members.journal_id WHERE user_id = :user_id ORDER BY title ASC",
-                       user_id=session["user_id"])
-
-    # Select all journals a user has access to
-    journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
-                          user_id=session["user_id"])
-
-    # Retrieve page from DB
-    display_page = db.execute(
-        "SELECT * FROM pages WHERE id = :page_id", page_id=page_id)
-
-    page_journal = db.execute(
-        "SELECT id, name FROM journals WHERE id = :journal_id", journal_id=display_page[0]["journal_id"])
-    # Error Check
-    if not display_page:
-        return apology("page not found", 403)
-
-    # genereate the concordance list
-    concordance = concordance_list(page_id, session["user_id"])
-
-    concordance_journals = []
-    for page in concordance:
-        if page["journal_id"] not in concordance_journals:
-            concordance_journals.append(page["journal_id"])
-
-    print(concordance_journals)
-    # format text
-    page_content = Markup(display_page[0]["content"])
-
-    return render_template("page.html", concordance_page=concordance_page, concordance_content=concordance_content, concordance_journals=concordance_journals, concordance=concordance, display_warning=display_warning, warning=warning, display_page=display_page, page_content=page_content, page_journal=page_journal, pages=pages, journals=journals)
-
-
-# Set up a new journal
-def new_journal(user_id, name):
-    new_id = db.execute(
-        "INSERT INTO journals (name, creator_id) VALUES (?,?)", name, user_id)
-
-    # new_id = db.execute("INSERT INTO journals (name, creator_id) VALUES (:name, :creator_id)",
-    #          name=name, creator_id=user_id)
-    db.execute("INSERT INTO journal_members (journal_id, user_id) VALUES (:journal_id, :user_id)",
-               journal_id=new_id, user_id=user_id)

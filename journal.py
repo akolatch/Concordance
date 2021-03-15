@@ -4,10 +4,10 @@ from models import Page, Journal, Member
 
 
 # /new_journal POST --> /journals POST
-def create(journal_name):
+def create(user, journal_name, new_user=False):
     """Create a Journal"""
 
-    user = session["user_id"]
+    # user = session["user_id"]
 
     # Journal name already exists check
     name_check = Journal.find({'creator_id': user}, ['name'])
@@ -19,10 +19,14 @@ def create(journal_name):
     new_id = Journal.create({'name': journal_name, 'creator_id': user})
     Member.create({'journal_id': new_id, 'user_id': user})
 
+    if new_user:
+        return
+
     return render_index()
 
-
 # /delete_journal POST --> /journals/delete POST (/journal DELETE)
+
+
 def remove(journal_id):
     """delete a journal"""
 

@@ -8,10 +8,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import journal
 import page
 import invite
+import user
 from controllers import render_index
-from helpers import apology, login_required, new_journal
+from helpers import apology, login_required
 
-from query_model import db
 
 # Configure application
 app = Flask(__name__)
@@ -54,32 +54,20 @@ def login():
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
+        username = request.form.get("username")
+        password = request.form.get("password")
         # Ensure username was submitted
-        if not request.form.get("username"):
+        if not username:
             login_fail_display = "block"
             return render_template("login.html", login_fail_display=login_fail_display)
 
         # Ensure password was submitted
-        elif not request.form.get("password"):
+        elif not password:
             login_fail_display = "block"
             return render_template("login.html", login_fail_display=login_fail_display)
 
-        # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
-                          username=request.form.get("username"))
+        return user.login(username, password)
 
-        # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
-            login_fail_display = "block"
-            return render_template("login.html", login_fail_display=login_fail_display)
-
-        # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
-
-        # Redirect user to home page
-        return redirect("/")
-
-    # User reached route via GET (as by clicking a link or via redirect)
     else:
         login_fail_display = "none"
         return render_template("login.html", login_fail_display=login_fail_display)
@@ -103,7 +91,7 @@ def register():
     # Set username field to blank
     username = ""
 
-    # Username requirements text
+    # Username requirement text
     username_instructions = "Your username must be between 6 and 30 characters long."
 
     # Username requirement display setting
@@ -129,52 +117,7 @@ def register():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # Confirm the username doesn't already exist
-        if db.execute("SELECT username FROM users WHERE username = ?", username):
-
-            # Reset username to blank
-            username = ""
-
-            # Set new username requirement text and display setting
-            username_instructions = "Sorry, that useusername is taken. Try another."
-            username_instructions_display = "block"
-            return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
-
-        # Confirm the password contains at least one capitalized letter
-        if password.islower():
-
-            # Set new password requirement text and display setting
-            password_instructions = "Your password must contain at least one character that is capitalized."
-            password_instructions_display = "block"
-            password_form = ""
-            return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
-
-        # Confirm the password contains a combination of both letters and numbers
-        if password.isnumeric() or password.isalpha():
-
-            # Set new password requirement text and display setting
-            password_instructions = "Your password must contain a combination of both numbers and letters."
-            password_instructions_display = "block"
-            password_form = ""
-            return render_template("register.html", password_form=password_form, username=username, username_instructions=username_instructions, password_instructions=password_instructions, username_instructions_display=username_instructions_display, password_instructions_display=password_instructions_display)
-
-        # Username and password are good
-
-        # Hash the password
-        pass_hash = generate_password_hash(password)
-
-        # Store password and hash in the users db
-        db.execute("INSERT INTO users (username, hash) VALUES (:username, :pass_hash)",
-                   username=username, pass_hash=pass_hash)
-
-        # set up new user db
-        new_user = db.execute(
-            "SELECT id FROM users WHERE username = :username", username=username)
-        user_id = new_user[0]["id"]
-        new_journal(user_id, username)
-
-        # Redirect user to login
-        return redirect("login")
+        return user.register(username, password)
 
 
 @app.route("/new_journal", methods=["POST"])
@@ -188,7 +131,7 @@ def new_journals():
     if journal_name == "":
         return render_index("You must give a Title to your new journal")
 
-    return journal.create(journal_name)
+    return journal.create(session["user_id"], journal_name)
 
 
 @app.route("/search", methods=["POST"])
@@ -196,6 +139,7 @@ def new_journals():
 def search():
     """execute a search"""
 
+    # clean and check search term
     search_term = request.form.get("search-term")
     search_term = search_term.strip()
 
@@ -210,12 +154,13 @@ def search():
 def new_page():
     """open a new page"""
 
-    journal_id = request.form.get("journal_id")
     page_name = request.form.get("page_name")
-    page_name = page_name.strip()
+    journal_id = request.form.get("journal_id")
 
     if page_name == "":
         return render_index("You must give a Title to your new page")
+
+    page_name = page_name.strip()
 
     return page.create(page_name, journal_id)
 
@@ -225,8 +170,8 @@ def new_page():
 def load_page():
     """open a saved page"""
 
+    # Load page from id
     page_id = request.form.get("page_id")
-
     return page.load(page_id)
 
 
@@ -235,9 +180,9 @@ def load_page():
 def concordance():
     """append concordance onto a page"""
 
+    # Load page from id
     concordance_id = request.form.get("concordance_id")
     page_id = request.form.get("page_id")
-
     return page.load(page_id, concordance_id)
 
 
@@ -258,11 +203,11 @@ def move_page():
 def save_page():
     """Save a Page"""
 
+    title = request.form.get("title")
     page_id = request.form.get("page_id")
     text = request.form.get("page_text")
-    title = request.form.get("title")
-    title = title.strip()
 
+    title = title.strip()
     return page.update(title, page_id, text)
 
 
@@ -272,6 +217,7 @@ def delete_page():
     """Delete a page"""
 
     page_id = request.form.get("page_id")
+
     message = page.remove(page_id)
 
     return render_index(message)
@@ -318,25 +264,25 @@ def decline_invite():
 
     return invite.respond(journal_id, False)
 
-
 # TODO:
+
+
 @app.route("/account", methods=["GET", "POST"])
 @login_required
 def account():
     """manage account activity"""
     if request == "GET":
-        user = db.execute(
-            "SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
+        # user = db.execute("SELECT name, id FROM users WHERE id = :user_id", user_id=session["user_id"])
 
-        # Select all journals a user has access to
-        journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
-                              user_id=session["user_id"])
+        # # Select all journals a user has access to
+        # journals = db.execute("SELECT id, name FROM journals JOIN journal_members ON journals.id = journal_members.journal_id  WHERE user_id = :user_id ORDER BY name ASC",
+        #                   user_id=session["user_id"])
 
         return render_template("account.html", user=user, journals=journals)
+
     return apology("TODO")
 
 
-# errors
 def errorhandler(e):
     """Handle error"""
     if not isinstance(e, HTTPException):
